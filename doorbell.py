@@ -1,139 +1,159 @@
-#############
-# User Parameters
-#############
-
-
-
-# Doorbell pin
-DOORBELL_PIN = 26
-
-# 電話會撥多久
-# Number of seconds to keep the call active
-DOORBELL_SCREEN_ACTIVE_S = 60
-
-# 會議ID
-# 如果等於NONE 自動產生隨機id
-# ID of the JITSI meeting room
-JITSI_ID = None  # If None, the program generates a random UUID
-# JITSI_ID = "hackershackdoorbellexample"
-
-
-# 設置鈴聲特效
-# Path to the SFX file
-RING_SFX_PATH = None  # If None, no sound effect plays
-# RING_SFX_PATH = "/home/pi/ring.wav"
-
-#############
-# Program
-#############
+import threading
+from email.mime import audio
+# from tkinter import NO
+from dotenv import load_dotenv
+import os, threading
+from time import sleep
 
 import time
-import os
-import signal
-import subprocess
-import smtplib
+from picamera import PiCamera
+from datetime import datetime
+import RPi.GPIO as GPIO
+from picamera import PiCamera,Color
+from subprocess import call, Popen, PIPE
+
+from doorbell import VideoChat
 import uuid
 
-# from email.MIMEMultipart import MIMEMultipart
-# from email.MIMEText import MIMEText
-# from email.MIMEImage import MIMEImage
-
-try:
-    import RPi.GPIO as GPIO
-except RuntimeError:
-    print("Error importing RPi.GPIO. This is probably because you need superuser. Try running again with 'sudo'.")
-
-#  開啟顯示(HDMI)
-def show_screen():
-    os.system("tvservice -p")
-    os.system("xset dpms force on")
-
-#  關閉顯示輸出
-def hide_screen():
-    os.system("tvservice -o")
 
 
+GPIO.setmode(GPIO.BOARD)
+BUTTON_PIN=7
+GPIO.setup(BUTTON_PIN,GPIO.IN)
 
-# 按一下按鈕後
-def ring_doorbell(pin):
-    # 撥放音效
-    # SoundEffect(RING_SFX_PATH).play()
+import telegram
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, Filters
 
-    # meet ID 如果 = none，則 隨機產生ID 
-    chat_id = JITSI_ID if JITSI_ID else str(uuid.uuid4())
-    # 將ID交給 video_chat 處理 
-    video_chat = VideoChat(chat_id)
-    
-    # 開啟顯示
-    show_screen()
+def button(update: Update, context: CallbackContext) -> None :
+    username = update.effective_user.username
+    query = update.callback_query
+    update.callback_query.message.reply_text('Hi')
 
-    video_chat.start()
-    # 如果依定時間內沒有接電話的話，就掛斷
-    time.sleep(DOORBELL_SCREEN_ACTIVE_S)
-    video_chat.end()
-    #  掛斷後關閉顯示
-    hide_screen()
+def msg(update: Update, context: CallbackContext) :
+    username = update.effective_user.username
+    msg = update.message.text
+    update.message.reply_text("!")
 
+def record(update: Update, context: CallbackContext) :
+    global VIDEO_PATH,VIDEO_PATH_mp4,count
+    update.message.reply_text('幫您錄個影呦~ OVO')
+    count = time_now(1)
+    # camera.resolution = (1000, 1000)
+    camera.start_preview()
+    camera.annotate_background = Color('red')
+    camera.annotate_text = "I'm comming ><"
+    camera.rotation = 180
+    VIDEO_PATH = ('/home/pi/Desktop/video/video%s.h264'% count)
+    VIDEO_PATH_mp4 = ('/home/pi/Desktop/video/video%s.mp4'% count)
+    camera.start_recording(VIDEO_PATH)
+    time.sleep(2)
+    camera.stop_recording()
+    camera.stop_preview()
+    convert(VIDEO_PATH, VIDEO_PATH_mp4)
+    update.message.reply_text('Video From Telegram Bot : '+ count)
+    update.message.reply_video(open(VIDEO_PATH_mp4, 'rb'))
+    print("video recorded")
 
+    # covert video format
+def convert(VIDEO_PATH, VIDEO_PATH_mp4):
+    # Record a 15 seconds video.
+    print("Rasp_Pi => Video Recorded! \r\n")
+    # Convert the h264 format to the mp4 format.
+    command = "MP4Box -add " + VIDEO_PATH + " " + VIDEO_PATH_mp4
+    call([command], shell=True)
+    print("\r\nRasp_Pi => Video Converted! \r\n")
 
-
-# meet 視訊聊天
-class VideoChat:
-    def __init__(self, chat_id):
-        self.chat_id = chat_id
-        self._process = None
-    # 取得meet url
-    def get_chat_url(self):
-        return "http://meet.jit.si/%s" % self.chat_id
-    # 開啟meet
-    def start(self):
-        if not self._process and self.chat_id:
-            self._process = subprocess.Popen(["chromium-browser", "-kiosk", self.get_chat_url()])
-        else:
-            print("Can't start video chat -- already started or missing chat id")
-    # 結束meet 
-    def end(self):
-        if self._process:
-            os.kill(self._process.pid, signal.SIGTERM)
-
-
-
-# 門鈴
-class Doorbell:
-    # Pin
-    def __init__(self, doorbell_button_pin):
-        self._doorbell_button_pin = doorbell_button_pin
-    # 啟動
-    def run(self):
-        try:
-            print("Starting Doorbell...")
-            #  關閉顯示輸出
-            hide_screen()
-            self._setup_gpio()
-            print("Waiting for doorbell rings...")
-            # 等待別人按門鈴
-            self._wait_forever()
-
-        except KeyboardInterrupt:
-            print("Safely shutting down...")
-
-        finally:
-            self._cleanup()
-
-    def _wait_forever(self):
-        while True:
-            time.sleep(0.1)
-    # 偵測 ring_doorbell
-    def _setup_gpio(self):
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self._doorbell_button_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-        GPIO.add_event_detect(self._doorbell_button_pin, GPIO.RISING, callback=ring_doorbell, bouncetime=2000)
-
-    def _cleanup(self):
-        GPIO.cleanup(self._doorbell_button_pin)
-        show_screen()
+def time_now(type):
+    # 1:檔名
+    # 0: 時間字串
+    if(type == 1):
+        result = datetime.now().strftime("%Y%m%d%H%M%S%p")
+    else:
+        result = datetime.now().strftime("%Y-%m-%d %H:%M:%S %p")
+    print(result)
+    return result
 
 
-if __name__ == "__main__":
-    doorbell = Doorbell(DOORBELL_PIN)
-    doorbell.run()
+def takePic(update: Update, context: CallbackContext) -> None :
+    # print('U:',Update, ' U:',CallbackContext)
+    # print('u:',update, ' c:',context)
+    global detecting_thread,camera
+    update.message.reply_text('找安找安')
+    camera.start_preview()
+    try:
+        for i, filename in enumerate(
+                camera.capture_continuous('image{counter:01d}.jpg')):
+            print(filename)
+            time.sleep(1)
+            if i == 1:
+                break
+    finally:
+        camera.stop_preview()
+
+    for i in range (1,2):
+            photo = 'image'+ str(i) + '.jpg'
+            update.message.reply_photo(open(photo, 'rb'))
+    # detecting_thread = None
+# 設置指令名字，def 指令要做的事，可以從聊天室按指令執行
+def start(update: Update, context: CallbackContext) -> None :
+    global detecting_thread
+    keyboard = [
+        [KeyboardButton(text='/record')],
+        [KeyboardButton(text='/takePic')],
+        [KeyboardButton(text='/start')]
+    ]
+    update.message.reply_text('我是看門小精靈 OVO ', reply_markup=ReplyKeyboardMarkup(keyboard=keyboard))
+    # BUTTON_STATUS = GPIO.input(BUTTON_PIN)
+    # print("BTN STATUS : ",BUTTON_STATUS)
+    detecting_thread = None
+    detecting_thread = threading.Thread(target=Btn,args = (update, context))
+    detecting_thread.start()
+
+
+user_status = dict()
+def Btn(update: Update, context: CallbackContext):
+    global detecting_thread,video_chat,DOORBELL_SCREEN_ACTIVE_S
+    while(True):
+        BUTTON_STATUS = GPIO.input(BUTTON_PIN)
+        detecting_thread = None
+        while(BUTTON_STATUS == 0): #按鈕
+            print("1st BTN STATUS : ",BUTTON_STATUS)
+            update.message.reply_text('有人敲門優 OVO')
+            # update.message.reply_text(str(video_chat.get_chat_url()))
+            # video_chat.start()
+            takePic(update, context)
+            BUTTON_STATUS = 1
+            print("2nd BTN STATUS : ",BUTTON_STATUS)
+            # time.sleep(DOORBELL_SCREEN_ACTIVE_S)
+            # video_chat.end()
+
+
+# global 偵測 
+detecting_thread = None
+JITSI_ID = "HouseDoor"
+chat_id = JITSI_ID if JITSI_ID else str(uuid.uuid4())
+video_chat = VideoChat(chat_id)
+DOORBELL_SCREEN_ACTIVE_S = 60
+
+
+if __name__ == "__main__" :
+    try :
+        load_dotenv()
+        TOKEN = os.getenv("TOKEN")
+        updater = Updater(TOKEN)
+        camera = PiCamera()
+
+        updater.dispatcher.add_handler(CommandHandler('start', start))
+        updater.dispatcher.add_handler(CommandHandler('takePic', takePic))
+        updater.dispatcher.add_handler(CommandHandler('record', record))
+        updater.dispatcher.add_handler(CallbackQueryHandler(button))
+        updater.dispatcher.add_handler(MessageHandler(~Filters.command, msg))
+
+        updater.start_polling()
+        print('bot start listening...')
+        updater.idle()
+        
+    except KeyboardInterrupt:
+        detecting_thread = None
+        GPIO.cleanup()

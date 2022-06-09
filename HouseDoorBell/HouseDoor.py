@@ -120,13 +120,13 @@ def Btn(update: Update, context: CallbackContext):
         while(BUTTON_STATUS == 0): #按鈕
             print("1st BTN STATUS : ",BUTTON_STATUS)
             update.message.reply_text('有人敲門優 OVO')
-            update.message.reply_text(str(video_chat.get_chat_url()))
-            video_chat.start()
+            # update.message.reply_text(str(video_chat.get_chat_url()))
+            # video_chat.start()
             takePic(update, context)
             BUTTON_STATUS = 1
             print("2nd BTN STATUS : ",BUTTON_STATUS)
-            time.sleep(DOORBELL_SCREEN_ACTIVE_S)
-            video_chat.end()
+            # time.sleep(DOORBELL_SCREEN_ACTIVE_S)
+            # video_chat.end()
 
 
 # global 偵測 

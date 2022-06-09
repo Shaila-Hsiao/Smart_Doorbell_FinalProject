@@ -1,36 +1,10 @@
 ###### tags: `計算機組織`
 # 期末專題
-:::info
 - [期末PPT](https://docs.google.com/presentation/d/1Um9bDFIl3elsNQSZhFx5m80lhi1oShYgHDFMpHMJ0q8/edit?usp=sharing) 
-:::
 ## 範例資源
 - [範例教學網站](https://www.hackster.io/hackershack/smart-doorbell-video-intercom-system-e5aa61)
 - [範例 github](https://github.com/HackerShackOfficial/Smart-Doorbell)
 - [範例影片](https://www.youtube.com/watch?v=NteJ33ETxmA&ab_channel=DroneBotWorkshop)
-## 報告內容
-- [Github 連結](https://github.com/Shaila-Hsiao/Smart_Doorbell_FinalProject)
-## 分工
-- 分工
-    - 期末PPT
-    - 需要功能
-        - telegram bot
-            - 控制 pi 連接拍照
-        - 通話
-        - 拍照 (按鈕按下去當下 拍一張傳至BOT)跟 即時通訊(可以直接看到門外)
-            > 不確定要不要及時雙方通話 , 如果需要可以開鏡頭(主人可以看到),會需要螢幕(可問問看王念祖: )
-        - 按鈕: 按下去　開始通話　
-          > 用甚麼通話? telegram 嗎? [color=pink]
-    - 需要物品
-        - pi camara : moli
-        - 按鈕 : moli
-        - 麥克風(收音的): 跟柏瑋借
-        - 喇叭(放音的)
-            > 需要 音源線 (問漢偉)
-        - 螢幕
-            >需討論[color=red]
-
-
-
 ## Enable the Microphone
 - 進入 聲音控制畫面 `alsamixer` 
     ![](https://i.imgur.com/yTRnVDy.png)
@@ -62,30 +36,23 @@
 - 播音
     `aplay --device=hw:1,0 test.wav`
 
-:::info
-device number
-MICROPHONE: 2
-speaker: 1
-:::
-## 即時視訊
-範例網站
-- [mjpg-streamer](https://github.com/jacksonliam/mjpg-streamer)
-    >我看其他範例都是下載這個github
-    - http://hophd.com/raspberry-camera-streaming/
-    - https://xianghu.pixnet.net/blog/post/155977403-raspberrypi%26webcamera
-        ```shell=
-        sudo apt-get install cmake libjpeg9-dev
-        ```
-        ![](https://i.imgur.com/pHVQZQ9.png)
-- [Motion](https://www.instructables.com/How-to-Make-Raspberry-Pi-Webcam-Server-and-Stream-/)
-- [Video Streaming with Flask ](https://github.com/miguelgrinberg/flask-video-streaming)
-## pi camera
+
+>【Device number】
+> MICROPHONE: 2
+> speaker: 1
+## Pi camera
 - 安裝 python pip
-    - `sudo apt install python3-pip`
+    ```python=
+    sudo apt install python3-pip
+    ```
 - 安裝picamara 套件
-    - `sudo pip3 install picamera`
+    ```python=
+    sudo pip3 install picamera
+    ```
 - enable picamara
-    - `sudo raspi-config`
+    ```python=
+    sudo raspi-config
+    ```
     * enter interface option
     * enter Camera to enable Yes
 
@@ -138,12 +105,18 @@ while True:
 
 ```
 ## telegram bot 
-:::info
-[API](https://docs.python-telegram-bot.org/en/stable/telegram.message.html)
-:::
+
+- [API](https://docs.python-telegram-bot.org/en/stable/telegram.message.html)
+
 - 安裝telegram bot 相關套件
-    -  讀token: `sudo pip3 install python-dotenv`
-    -  操作 Telegram Bot: `sudo pip3 install python-telegram-bot`
+    -  讀token: 
+    ```python=
+    sudo pip3 install python-dotenv
+    ```
+    -  操作 Telegram Bot: 
+    ```python=
+    sudo pip3 install python-telegram-bot
+    ```
 - 引入套件
     ```python=
     import telegram

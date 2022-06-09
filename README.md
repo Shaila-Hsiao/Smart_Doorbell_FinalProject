@@ -1,6 +1,7 @@
 ###### tags: `計算機組織`
 # 期末專題
 - [期末PPT](https://docs.google.com/presentation/d/1Um9bDFIl3elsNQSZhFx5m80lhi1oShYgHDFMpHMJ0q8/edit?usp=sharing) 
+- [期末實作影片](https://youtu.be/aC__qocW2Ys)
 ## 範例資源
 - [範例教學網站](https://www.hackster.io/hackershack/smart-doorbell-video-intercom-system-e5aa61)
 - [範例 github](https://github.com/HackerShackOfficial/Smart-Doorbell)
